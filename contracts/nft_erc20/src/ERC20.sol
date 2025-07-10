@@ -8,15 +8,18 @@ contract ERC20 {
     uint8 public decimals;
 
     uint public totalSupply = 0;
-    address private owner;
+    address public owner;
 
     error OnlyOwner();
     error ZeroAddress();
     error InsufficientBalance();
+    error InsufficientAllowance();
 
     mapping(address => uint) private balances;
+    mapping(address => mapping(address => uint)) public allowances;
 
     event Transfer(address indexed from, address indexed to, uint value);
+    event Approval(address indexed owner, address indexed spender, uint value);
 
     constructor(string memory _name, string memory _symbol, uint8 _decimals) {
         name = _name;
@@ -56,5 +59,53 @@ contract ERC20 {
         balances[_to] += _amount;
 
         emit Transfer(msg.sender, _to, _amount);
+    }
+
+    function allowance(
+        address _owner,
+        address _spender
+    ) public view returns (uint) {
+        return allowances[_owner][_spender];
+    }
+
+    function transferFrom(
+        address _from,
+        address _to,
+        uint _amount
+    ) public notZeroAddress(_from) notZeroAddress(_to) {
+        if (allowances[_from][msg.sender] < _amount)
+            revert InsufficientAllowance();
+        allowances[_from][msg.sender] -= _amount;
+        balances[_from] -= _amount;
+        balances[_to] += _amount;
+
+        emit Transfer(_from, _to, _amount);
+    }
+
+    function approve(
+        address _spender,
+        uint _amount
+    ) public notZeroAddress(_spender) {
+        allowances[msg.sender][_spender] = _amount;
+        emit Approval(msg.sender, _spender, _amount);
+    }
+
+    function burn(uint _amount) public {
+        if (balances[msg.sender] < _amount) revert InsufficientBalance();
+        balances[msg.sender] -= _amount;
+        totalSupply -= _amount;
+        emit Transfer(msg.sender, address(0), _amount);
+    }
+
+    function burnFrom(
+        address _from,
+        uint _amount
+    ) public notZeroAddress(_from) {
+        if (allowances[_from][msg.sender] < _amount)
+            revert InsufficientAllowance();
+        allowances[_from][msg.sender] -= _amount;
+        balances[_from] -= _amount;
+        totalSupply -= _amount;
+        emit Transfer(_from, address(0), _amount);
     }
 }
