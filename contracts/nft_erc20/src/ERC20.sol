@@ -44,6 +44,7 @@ contract ERC20 {
         emit Transfer(address(0), _to, _amount);
     }
 
+    // Maybe move mint in another contract inheriting from this
     function mint(address to, uint amount) public onlyOwner notZeroAddress(to) {
         _mint(to, amount);
     }
@@ -73,6 +74,7 @@ contract ERC20 {
         address _to,
         uint _amount
     ) public notZeroAddress(_from) notZeroAddress(_to) {
+        // Check if _from == msg.sender
         if (allowances[_from][msg.sender] < _amount)
             revert InsufficientAllowance();
         allowances[_from][msg.sender] -= _amount;
