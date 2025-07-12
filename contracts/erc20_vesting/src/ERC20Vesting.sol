@@ -34,6 +34,24 @@ contract ERC20Vesting {
         token = ERC20(_tokenAddress);
     }
 
+    function _claimableNow(
+        VestingSchedule storage vesting
+    ) internal view returns (uint) {
+        if (vesting.totalAmount == 0) return 0;
+
+        uint elapsed = block.timestamp - vesting.startTime;
+        if (elapsed > vesting.duration) elapsed = vesting.duration;
+
+        uint totalUnlocked = (vesting.totalAmount * elapsed) / vesting.duration;
+        if (totalUnlocked <= vesting.claimedAmount) return 0;
+
+        return totalUnlocked - vesting.claimedAmount;
+    }
+
+    function claimableNow(address user) public view returns (uint) {
+        return _claimableNow(vestings[user]);
+    }
+
     function depositFor(
         address user,
         uint amount,
@@ -56,24 +74,10 @@ contract ERC20Vesting {
     function claim() public {
         VestingSchedule storage userVesting = vestings[msg.sender];
 
-        if (userVesting.totalAmount < 1) revert NoTokens();
-        if (block.timestamp < userVesting.startTime + userVesting.duration)
-            revert CantClaimYet();
+        uint claimableNow_ = _claimableNow(userVesting);
+        if (claimableNow_ == 0) revert NothingToClaim();
 
-        uint elapsed = block.timestamp - userVesting.startTime;
-        if (elapsed > userVesting.duration) {
-            elapsed = userVesting.duration;
-        }
-        uint totalUnlocked = (userVesting.totalAmount * elapsed) /
-            userVesting.duration;
-
-        if (totalUnlocked <= userVesting.claimedAmount) {
-            revert NothingToClaim();
-        }
-
-        uint claimableNow = totalUnlocked - userVesting.claimedAmount;
-
-        userVesting.claimedAmount++;
-        require(token.transfer(msg.sender, claimableNow), "Transfer failed");
+        userVesting.claimedAmount += claimableNow_;
+        require(token.transfer(msg.sender, claimableNow_), "Transfer failed");
     }
 }
