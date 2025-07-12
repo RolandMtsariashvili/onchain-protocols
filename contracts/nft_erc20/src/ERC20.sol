@@ -38,15 +38,10 @@ contract ERC20 {
         _;
     }
 
-    function _mint(address _to, uint _amount) private notZeroAddress(_to) {
+    function _mint(address _to, uint _amount) internal notZeroAddress(_to) {
         totalSupply += _amount;
         balances[_to] += _amount;
         emit Transfer(address(0), _to, _amount);
-    }
-
-    // Maybe move mint in another contract inheriting from this
-    function mint(address to, uint amount) public onlyOwner notZeroAddress(to) {
-        _mint(to, amount);
     }
 
     function balanceOf(address account) public view returns (uint) {
@@ -73,7 +68,7 @@ contract ERC20 {
         address _from,
         address _to,
         uint _amount
-    ) public notZeroAddress(_from) notZeroAddress(_to) {
+    ) public notZeroAddress(_from) notZeroAddress(_to) returns (bool) {
         // Check if _from == msg.sender
         if (allowances[_from][msg.sender] < _amount)
             revert InsufficientAllowance();
@@ -82,6 +77,7 @@ contract ERC20 {
         balances[_to] += _amount;
 
         emit Transfer(_from, _to, _amount);
+        return true;
     }
 
     function approve(

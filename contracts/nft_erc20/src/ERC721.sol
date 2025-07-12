@@ -24,6 +24,14 @@ contract NFTReceiver is IERC721Receiver {
 
 // Todo: Implement safeTransferFrom with NFTReceiver
 contract ERC721 {
+    string public name;
+    string public symbol;
+
+    constructor(string memory _name, string memory _symbol) {
+        name = _name;
+        symbol = _symbol;
+    }
+
     function supportsInterface(bytes4 interfaceId) public pure returns (bool) {
         return interfaceId == 0x80ac58cd || interfaceId == 0x01ffc9a7;
     }
