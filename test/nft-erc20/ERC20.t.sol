@@ -3,8 +3,8 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {Test, console} from "forge-std/Test.sol";
-import {LOMOCoin} from "../src/NFTShop.sol";
-import {ERC20} from "../src/ERC20.sol";
+import {LOMOCoin} from "../../src/nft_erc20/NFTShop.sol";
+import {ERC20} from "../../src/nft_erc20/ERC20.sol";
 
 contract ERC20Test is Test {
     LOMOCoin token;
