@@ -1,11 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 
-import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
-
 pragma solidity >=0.7.0 <0.9.0;
 
+import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 contract ERC20Vesting {
     ERC20 token;
+
+    event Deposited(address indexed user, uint amount, uint duration);
+    event Claimed(address user, uint amount);
 
     struct VestingSchedule {
         uint totalAmount;
@@ -65,6 +67,7 @@ contract ERC20Vesting {
             startTime: block.timestamp,
             duration: duration
         });
+        emit Deposited(user, amount, duration);
         require(
             token.transferFrom(msg.sender, address(this), amount),
             "Transfer failed"
@@ -78,6 +81,8 @@ contract ERC20Vesting {
         if (claimableNow_ == 0) revert NothingToClaim();
 
         userVesting.claimedAmount += claimableNow_;
+
+        emit Claimed(msg.sender, claimableNow_);
         require(token.transfer(msg.sender, claimableNow_), "Transfer failed");
     }
 }
