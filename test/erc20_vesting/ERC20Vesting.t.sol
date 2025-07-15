@@ -50,4 +50,27 @@ contract ERC20VestingTest is Test {
         vm.expectRevert(ERC20Vesting.NotOwner.selector);
         vesting.depositFor(address(2), 50, 2 days);
     }
+
+    function testClaimAfterHalfTime() public {
+        vesting.depositFor(user, 100, 10 days);
+        assertEq(token.balanceOf(user), 0);
+
+        vm.warp(block.timestamp + 5 days);
+        vm.prank(user);
+        vesting.claim();
+        assertEq(token.balanceOf(user), 50);
+
+        vm.warp(block.timestamp + 3 days);
+        vm.prank(user);
+        vesting.claim();
+        assertEq(token.balanceOf(user), 80);
+    }
+
+    function testNothingToClaim() public {
+        vesting.depositFor(user, 100, 10 days);
+
+        vm.prank(user);
+        vm.expectRevert(ERC20Vesting.NothingToClaim.selector);
+        vesting.claim();
+    }
 }
