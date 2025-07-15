@@ -21,12 +21,33 @@ contract ERC20VestingTest is Test {
     address admin;
 
     function setUp() public {
-        vesting = new ERC20Vesting(address(token));
         token = new MockERC20();
+        vesting = new ERC20Vesting(address(token));
         admin = address(this);
 
-        token.mint(user, 100);
-        vm.prank(user);
+        token.mint(admin, 100);
         token.approve(address(vesting), type(uint).max);
+    }
+
+    function testDepositWorks() public {
+        vesting.depositFor(user, 50, 7 days);
+
+        (
+            uint totalAmount,
+            uint claimedAmount,
+            uint startTime,
+            uint duration
+        ) = vesting.vestings(user);
+
+        assertEq(totalAmount, 50);
+        assertEq(claimedAmount, 0);
+        assertApproxEqAbs(startTime, block.timestamp, 2);
+        assertEq(duration, 7 days);
+    }
+
+    function testDepositShouldFailForNotOwner() public {
+        vm.prank(user);
+        vm.expectRevert(ERC20Vesting.NotOwner.selector);
+        vesting.depositFor(address(2), 50, 2 days);
     }
 }

@@ -5,6 +5,7 @@ pragma solidity >=0.7.0 <0.9.0;
 import {ERC20} from "openzeppelin-contracts/contracts/token/ERC20/ERC20.sol";
 contract ERC20Vesting {
     ERC20 token;
+    address owner;
 
     event Deposited(address indexed user, uint amount, uint duration);
     event Claimed(address user, uint amount);
@@ -26,14 +27,21 @@ contract ERC20Vesting {
     error NoTokens();
     error CantClaimYet();
     error NothingToClaim();
+    error NotOwner();
+
+    constructor(address _tokenAddress) {
+        token = ERC20(_tokenAddress);
+        owner = msg.sender;
+    }
 
     modifier notZeroAddress(address addr) {
         if (addr == address(0)) revert ZeroAddress();
         _;
     }
 
-    constructor(address _tokenAddress) {
-        token = ERC20(_tokenAddress);
+    modifier onlyOwner() {
+        if (msg.sender != owner) revert NotOwner();
+        _;
     }
 
     function _claimableNow(
@@ -58,7 +66,7 @@ contract ERC20Vesting {
         address user,
         uint amount,
         uint duration
-    ) public notZeroAddress(user) {
+    ) public notZeroAddress(user) onlyOwner {
         if (vestings[user].totalAmount > 0) revert AlreadyVested();
         if (duration == 0) revert ZeroDuration();
         vestings[user] = VestingSchedule({
