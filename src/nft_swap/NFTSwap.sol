@@ -3,9 +3,19 @@
 pragma solidity >=0.7.0 <0.9.0;
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
 
-contract NFTSwap is ReentrancyGuard {
+contract NFTSwap is ReentrancyGuard, IERC721Receiver {
     uint private nextSwapId = 1;
+
+    function onERC721Received(
+        address,
+        address,
+        uint256,
+        bytes calldata
+    ) external pure override returns (bytes4) {
+        return IERC721Receiver.onERC721Received.selector;
+    }
 
     struct NFT {
         address tokenAddress;
@@ -80,5 +90,9 @@ contract NFTSwap is ReentrancyGuard {
             requestedNFT.tokenAddress,
             requestedNFT.tokenId
         );
+    }
+
+    function getSwap(uint swapId) public view returns (Swap memory) {
+        return swaps[swapId];
     }
 }
