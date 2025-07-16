@@ -155,15 +155,15 @@ contract NFTSwap is ReentrancyGuard, IERC721Receiver {
             "Swap request expired"
         );
 
-        IERC721(swap.offeredNft.tokenAddress).safeTransferFrom(
-            address(this),
-            swap.counterparty,
-            swap.offeredNft.tokenId
-        );
         IERC721(swap.requestedNFT.tokenAddress).safeTransferFrom(
             address(this),
             swap.initiator,
             swap.requestedNFT.tokenId
+        );
+        IERC721(swap.offeredNft.tokenAddress).safeTransferFrom(
+            address(this),
+            swap.counterparty,
+            swap.offeredNft.tokenId
         );
 
         emit SwapExecuted(

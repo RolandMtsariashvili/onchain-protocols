@@ -7,41 +7,86 @@ import "openzeppelin-contracts/contracts/token/ERC721/ERC721.sol";
 import {NFTSwap} from "../../src/nft_swap/NFTSwap.sol";
 
 contract InitiatorsMockNFT is ERC721 {
-    constructor() ERC721("MockInitiatorNFT", "MINFT") {
+    constructor() ERC721("MockInitiatorNFT", "MINFT") {}
+
+    function mint() public {
         _mint(msg.sender, 1);
     }
 }
 
 contract CounterpartMockNft is ERC721 {
-    constructor() ERC721("MockCounterpartyNFT", "MCNFT") {
+    constructor() ERC721("MockCounterpartyNFT", "MCNFT") {}
+
+    function mint() public {
         _mint(msg.sender, 1);
     }
 }
 
 contract NFTSwapTest is Test {
-    address user = address(1);
-    ERC721 initiatorNft;
-    ERC721 counterpartNft;
+    address initiatorUser = address(1);
+    address counterpartyUser = address(2);
+
+    InitiatorsMockNFT initiatorNft;
+    CounterpartMockNft counterpartNft;
     NFTSwap nftSwap;
+
+    NFTSwap.NFT offered;
+    NFTSwap.NFT requested;
 
     function setUp() public {
         initiatorNft = new InitiatorsMockNFT();
-        counterpartNft = new CounterpartMockNft();
         nftSwap = new NFTSwap();
+        counterpartNft = new CounterpartMockNft();
 
+        vm.startPrank(initiatorUser);
+        initiatorNft.mint();
         initiatorNft.approve(address(nftSwap), 1);
+
+        vm.startPrank(counterpartyUser);
+        counterpartNft.mint();
+        counterpartNft.approve(address(nftSwap), 1);
+        vm.stopPrank();
+
+        offered = NFTSwap.NFT(address(initiatorNft), 1);
+        requested = NFTSwap.NFT(address(counterpartNft), 1);
     }
 
     function testCreateSwap() public {
-        NFTSwap.NFT memory offered = NFTSwap.NFT(address(initiatorNft), 1);
-        NFTSwap.NFT memory requested = NFTSwap.NFT(address(counterpartNft), 1);
-
+        vm.prank(initiatorUser);
         nftSwap.createSwap(offered, requested);
-
         NFTSwap.Swap memory swap = nftSwap.getSwap(1);
-        assertEq(swap.initiator, address(this));
+
+        assertEq(swap.initiator, initiatorUser);
         assertEq(swap.counterparty, address(0));
         assertEq(swap.initiatorDeposited, true);
         assertEq(swap.counterpartyDeposited, false);
+    }
+
+    function testFulfilSwap() public {
+        vm.prank(initiatorUser);
+        nftSwap.createSwap(offered, requested);
+
+        vm.prank(counterpartyUser);
+        nftSwap.fulfillSwap(1);
+
+        NFTSwap.Swap memory swap = nftSwap.getSwap(1);
+        assertEq(swap.initiator, initiatorUser);
+        assertEq(swap.counterparty, counterpartyUser);
+        assertEq(swap.initiatorDeposited, true);
+        assertEq(swap.counterpartyDeposited, true);
+    }
+
+    function testFulfilByInitiator() public {
+        vm.prank(initiatorUser);
+        nftSwap.createSwap(offered, requested);
+
+        vm.prank(counterpartyUser);
+        nftSwap.fulfillSwap(1);
+
+        vm.prank(initiatorUser);
+        nftSwap.executeSwap(1);
+
+        assertEq(counterpartNft.ownerOf(requested.tokenId), initiatorUser);
+        assertEq(initiatorNft.ownerOf(offered.tokenId), counterpartyUser);
     }
 }
