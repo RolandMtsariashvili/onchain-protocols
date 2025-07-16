@@ -36,8 +36,20 @@ contract NFTSwap is ReentrancyGuard, IERC721Receiver {
     mapping(uint => Swap) public swaps;
 
     event SwapCreated(
-        uint swapId,
+        uint indexed swapId,
         address indexed initiator,
+        address offeredTokenAddress,
+        uint offeredTokenId,
+        address requestedTokenAddress,
+        uint requestedTokenId
+    );
+
+    event SwapFulfilled(uint swapId, address indexed counterparty);
+
+    event SwapExecuted(
+        uint indexed swapId,
+        address indexed initiator,
+        address indexed counterparty,
         address offeredTokenAddress,
         uint offeredTokenId,
         address requestedTokenAddress,
@@ -94,5 +106,76 @@ contract NFTSwap is ReentrancyGuard, IERC721Receiver {
 
     function getSwap(uint swapId) public view returns (Swap memory) {
         return swaps[swapId];
+    }
+
+    function fulfillSwap(uint swapId) public nonReentrant {
+        Swap storage swap = swaps[swapId];
+
+        require(
+            swap.counterparty == msg.sender || swap.counterparty == address(0),
+            "caller is not a counterparty"
+        );
+        require(!swap.counterpartyDeposited, "Swap already fulfilled");
+        require(
+            swap.expiresAt == 0 || block.timestamp <= swap.expiresAt,
+            "Swap request expired"
+        );
+        require(
+            IERC721(swap.requestedNFT.tokenAddress).ownerOf(
+                swap.requestedNFT.tokenId
+            ) == msg.sender,
+            "you don't have needed token"
+        );
+
+        swap.counterpartyDeposited = true;
+        swap.counterparty = msg.sender;
+
+        IERC721(swap.requestedNFT.tokenAddress).safeTransferFrom(
+            msg.sender,
+            address(this),
+            swap.requestedNFT.tokenId
+        );
+
+        emit SwapFulfilled(swapId, msg.sender);
+    }
+
+    function executeSwap(uint swapId) public nonReentrant {
+        Swap storage swap = swaps[swapId];
+
+        require(
+            msg.sender == swap.counterparty || msg.sender == swap.initiator,
+            "You are not eligible for executing swap"
+        );
+        require(
+            swap.counterpartyDeposited && swap.initiatorDeposited,
+            "Not both parties have deposited token"
+        );
+        require(
+            swap.expiresAt == 0 || block.timestamp <= swap.expiresAt,
+            "Swap request expired"
+        );
+
+        IERC721(swap.offeredNft.tokenAddress).safeTransferFrom(
+            address(this),
+            swap.counterparty,
+            swap.offeredNft.tokenId
+        );
+        IERC721(swap.requestedNFT.tokenAddress).safeTransferFrom(
+            address(this),
+            swap.initiator,
+            swap.requestedNFT.tokenId
+        );
+
+        emit SwapExecuted(
+            swapId,
+            swap.initiator,
+            swap.counterparty,
+            swap.offeredNft.tokenAddress,
+            swap.offeredNft.tokenId,
+            swap.requestedNFT.tokenAddress,
+            swap.requestedNFT.tokenId
+        );
+
+        delete swaps[swapId];
     }
 }
