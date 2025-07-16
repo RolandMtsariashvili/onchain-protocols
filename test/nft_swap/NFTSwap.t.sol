@@ -40,8 +40,8 @@ contract NFTSwapTest is Test {
 
         NFTSwap.Swap memory swap = nftSwap.getSwap(1);
         assertEq(swap.initiator, address(this));
-        // assertEq(swap.counterparty, address(0));
-        // assertEq(swap.initiatorDeposited, true);
-        // assertEq(swap.counterpartyDeposited, false);
+        assertEq(swap.counterparty, address(0));
+        assertEq(swap.initiatorDeposited, true);
+        assertEq(swap.counterpartyDeposited, false);
     }
 }
