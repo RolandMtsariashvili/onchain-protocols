@@ -193,4 +193,27 @@ contract NFTSwap is ReentrancyGuard, IERC721Receiver {
 
         delete swaps[swapId];
     }
+
+    function reclaimAfterExpiry(uint swapId) public nonReentrant {
+        Swap storage swap = swaps[swapId];
+        require(block.timestamp > swap.expiresAt, "Not yet expired");
+
+        if (swap.initiatorDeposited) {
+            IERC721(swap.offeredNft.tokenAddress).safeTransferFrom(
+                address(this),
+                swap.initiator,
+                swap.offeredNft.tokenId
+            );
+        }
+
+        if (swap.counterpartyDeposited) {
+            IERC721(swap.requestedNFT.tokenAddress).safeTransferFrom(
+                address(this),
+                swap.counterparty,
+                swap.requestedNFT.tokenId
+            );
+        }
+
+        delete swaps[swapId];
+    }
 }

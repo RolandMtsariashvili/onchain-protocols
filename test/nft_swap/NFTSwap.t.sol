@@ -89,4 +89,52 @@ contract NFTSwapTest is Test {
         assertEq(counterpartNft.ownerOf(requested.tokenId), initiatorUser);
         assertEq(initiatorNft.ownerOf(offered.tokenId), counterpartyUser);
     }
+
+    function testCancelSwap() public {
+        vm.startPrank(initiatorUser);
+        nftSwap.createSwap(offered, requested);
+
+        nftSwap.cancelSwap(1);
+        vm.stopPrank();
+        assertEq(nftSwap.getSwap(1).initiator, address(0));
+    }
+
+    function testCancelShouldFailIfApproved() public {
+        vm.prank(initiatorUser);
+        nftSwap.createSwap(offered, requested);
+
+        vm.prank(counterpartyUser);
+        nftSwap.fulfillSwap(1);
+
+        vm.prank(initiatorUser);
+        vm.expectRevert("Swap already approved");
+        nftSwap.cancelSwap(1);
+    }
+
+    function testReclaimAfterExpiryShouldFailIfNotExpired() public {
+        vm.prank(initiatorUser);
+        nftSwap.createSwap(offered, requested);
+
+        vm.prank(counterpartyUser);
+        nftSwap.fulfillSwap(1);
+
+        vm.prank(initiatorUser);
+        vm.expectRevert("Not yet expired");
+        nftSwap.reclaimAfterExpiry(1);
+    }
+
+    function testReclaimAfterExpiry() public {
+        vm.prank(initiatorUser);
+        nftSwap.createSwap(offered, requested);
+
+        vm.prank(counterpartyUser);
+        nftSwap.fulfillSwap(1);
+
+        vm.warp(block.timestamp + 2 days);
+        vm.prank(initiatorUser);
+        nftSwap.reclaimAfterExpiry(1);
+
+        assertEq(counterpartNft.ownerOf(requested.tokenId), counterpartyUser);
+        assertEq(initiatorNft.ownerOf(offered.tokenId), initiatorUser);
+    }
 }
