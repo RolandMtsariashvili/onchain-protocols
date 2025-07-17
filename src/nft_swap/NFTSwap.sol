@@ -178,4 +178,19 @@ contract NFTSwap is ReentrancyGuard, IERC721Receiver {
 
         delete swaps[swapId];
     }
+
+    function cancelSwap(uint swapId) public nonReentrant {
+        Swap storage swap = swaps[swapId];
+
+        require(msg.sender == swap.initiator, "only initiator can cancel");
+        require(!swap.counterpartyDeposited, "Swap already approved");
+
+        IERC721(swap.offeredNft.tokenAddress).safeTransferFrom(
+            address(this),
+            swap.initiator,
+            swap.offeredNft.tokenId
+        );
+
+        delete swaps[swapId];
+    }
 }
