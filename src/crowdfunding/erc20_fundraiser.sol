@@ -116,4 +116,22 @@ contract ERC20Fundraiser is ReentrancyGuard {
 
         emit DonorWithdrawn(campaignId, msg.sender, amountDonated);
     }
+
+    function donationOf(
+        uint campaignId,
+        address donor
+    ) public view returns (uint) {
+        return donations[campaignId][donor];
+    }
+
+    function getCampaignStatus(
+        uint campaignId
+    )
+        public
+        view
+        returns (bool goalReached, bool fundsWithdrawn, bool expired)
+    {
+        Campaign memory c = campaigns[campaignId];
+        return (c.goalReached, c.fundsWithdrawn, block.timestamp > c.deadline);
+    }
 }
