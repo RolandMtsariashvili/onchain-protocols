@@ -3,8 +3,9 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-contract ERC20Fundraiser {
+contract ERC20Fundraiser is ReentrancyGuard {
     struct Campaign {
         address creator;
         uint goal;
@@ -21,18 +22,19 @@ contract ERC20Fundraiser {
     uint private _nextCampaignId;
 
     event FundraiserCreated(uint indexed id, address indexed creator);
-    event DonationAdded(uint indexed id, address indexed donator, uint amount);
+    event DonationAdded(uint indexed id, address indexed donor, uint amount);
     event CreatorWithdrawn(
         uint indexed id,
         address indexed creator,
         uint amount
     );
+    event DonorWithdrawn(uint indexed id, address indexed donor, uint amount);
 
     function createFundraiser(
         uint goal,
         uint deadline,
         address tokenAddress
-    ) public {
+    ) public nonReentrant {
         require(goal > 0, "Goal can not be zero");
         require(deadline > block.timestamp, "Deadline cant be in the past");
         require(tokenAddress != address(0), "Token address can be 0");
@@ -54,7 +56,7 @@ contract ERC20Fundraiser {
         emit FundraiserCreated(_nextCampaignId, msg.sender);
     }
 
-    function donate(uint campaignId, uint tokenAmount) public {
+    function donate(uint campaignId, uint tokenAmount) public nonReentrant {
         Campaign storage campaign = campaigns[campaignId];
         require(tokenAmount > 0, "donated amount cant be 0");
         require(campaign.creator != address(0), "Campaign not found");
@@ -77,7 +79,7 @@ contract ERC20Fundraiser {
         emit DonationAdded(campaignId, msg.sender, tokenAmount);
     }
 
-    function withdraw(uint campaignId) public {
+    function withdraw(uint campaignId) public nonReentrant {
         Campaign storage campaign = campaigns[campaignId];
         require(
             campaign.creator == msg.sender,
@@ -92,5 +94,26 @@ contract ERC20Fundraiser {
         );
 
         emit CreatorWithdrawn(campaignId, msg.sender, campaign.totalDonated);
+    }
+
+    function refund(uint campaignId) public nonReentrant {
+        Campaign storage campaign = campaigns[campaignId];
+        uint amountDonated = donations[campaignId][msg.sender];
+        require(amountDonated > 0, "you haven't made any donations");
+        require(!campaign.goalReached, "Campaign has reached its goal");
+        require(
+            block.timestamp >= campaign.deadline,
+            "Campaign is still active, cant withdraw"
+        );
+
+        unchecked {
+            campaign.totalDonated -= amountDonated;
+        }
+
+        donations[campaignId][msg.sender] = 0;
+
+        IERC20(campaign.tokenAddress).transfer(msg.sender, amountDonated);
+
+        emit DonorWithdrawn(campaignId, msg.sender, amountDonated);
     }
 }
