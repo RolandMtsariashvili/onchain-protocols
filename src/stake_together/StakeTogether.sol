@@ -27,6 +27,7 @@ contract StakeTogether is ReentrancyGuard {
     struct UserStake {
         uint amount;
         uint timestamp;
+        bool claimed;
     }
 
     mapping(address => UserStake) public stakes;
@@ -59,6 +60,7 @@ contract StakeTogether is ReentrancyGuard {
 
         stakes[msg.sender] = UserStake({
             amount: amount,
+            claimed: false,
             timestamp: block.timestamp
         });
         totalStakesAmount += amount;
@@ -69,9 +71,10 @@ contract StakeTogether is ReentrancyGuard {
     }
 
     function withdraw() public {
-        UserStake memory userStake = stakes[msg.sender];
+        UserStake storage userStake = stakes[msg.sender];
 
-        require(userStake.amount > 0, "Already withdrawn or never staked");
+        require(userStake.amount > 0, "Never staked");
+        require(!userStake.claimed, "Already withdrawn");
         require(block.timestamp > expirationDate, "Staking not finished yet");
 
         require(
@@ -82,7 +85,7 @@ contract StakeTogether is ReentrancyGuard {
         uint userShare = (userStake.amount * 1_000_000 ether) /
             totalStakesAmount;
 
-        delete stakes[msg.sender];
+        userStake.claimed = true;
         cloudCoin.transfer(msg.sender, userShare);
 
         emit Withdrawn(msg.sender, userStake.amount, userShare);
