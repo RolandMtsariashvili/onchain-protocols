@@ -24,34 +24,40 @@ contract StakeTogether is ReentrancyGuard {
 
     uint public totalStakesAmount;
 
-    struct Stake {
+    struct UserStake {
         uint amount;
         uint timestamp;
     }
 
-    mapping(address => Stake) public stakes;
+    mapping(address => UserStake) public stakes;
 
     event StakeMade(address indexed stakerAddress, uint amount);
+    event Withdrawn(
+        address indexed user,
+        uint amountStaked,
+        uint rewardClaimed
+    );
+
+    modifier onlyDuringStakingWindow() {
+        require(
+            block.timestamp >= beginDate &&
+                block.timestamp < expirationDate - 7 days,
+            "Staking not allowed at this time"
+        );
+        _;
+    }
 
     constructor(address _cloudCoin, uint _beginDate, uint _expirationDate) {
-        cloudCoin = new CloudCoin(_cloudCoin, mintAmount);
+        cloudCoin = CloudCoin(_cloudCoin);
         beginDate = _beginDate;
         expirationDate = _expirationDate;
     }
 
-    function stakeCoins(uint amount) public nonReentrant {
+    function stake(uint amount) public onlyDuringStakingWindow nonReentrant {
         require(amount > 0, "Amount cant be 0");
         require(stakes[msg.sender].amount == 0, "You have already Staked");
-        require(
-            block.timestamp >= beginDate,
-            "Stacking not started  yet started"
-        );
-        require(
-            block.timestamp < expirationDate - 7 days,
-            "Stacking window has passed"
-        );
 
-        stakes[msg.sender] = Stake({
+        stakes[msg.sender] = UserStake({
             amount: amount,
             timestamp: block.timestamp
         });
@@ -63,19 +69,22 @@ contract StakeTogether is ReentrancyGuard {
     }
 
     function withdraw() public {
-        Stake memory stake = stakes[msg.sender];
+        UserStake memory userStake = stakes[msg.sender];
 
-        require(stake.amount > 0, "No stake found");
+        require(userStake.amount > 0, "Already withdrawn or never staked");
         require(block.timestamp > expirationDate, "Staking not finished yet");
 
         require(
-            stake.timestamp <= expirationDate - 7 days,
+            userStake.timestamp <= expirationDate - 7 days,
             "You did not stake for 7 full days"
         );
 
-        uint userShare = (stake.amount * 1_000_000 ether) / totalStakesAmount;
+        uint userShare = (userStake.amount * 1_000_000 ether) /
+            totalStakesAmount;
 
         delete stakes[msg.sender];
         cloudCoin.transfer(msg.sender, userShare);
+
+        emit Withdrawn(msg.sender, userStake.amount, userShare);
     }
 }
