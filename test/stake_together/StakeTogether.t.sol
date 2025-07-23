@@ -75,4 +75,66 @@ contract StakeTogetherTest is Test {
 
         assertEq(staking.totalStakesAmount(), 601_000 ether);
     }
+
+    function testStake_RevertIfStakedTwice() public {
+        vm.warp(staking.beginDate() + 2);
+        vm.startPrank(user1);
+        staking.stake(10 ether);
+        vm.warp(staking.beginDate() + 3);
+        vm.expectRevert("You have already Staked");
+        staking.stake(10 ether);
+    }
+
+    function testWithdraw_RevertIfNeverStaked() public {
+        vm.startPrank(user1);
+        vm.expectRevert("Never staked");
+        staking.withdraw();
+    }
+
+    function testWithdraw_RevertIfAlreadyWithdrawn() public {
+        vm.startPrank(user1);
+        vm.warp(staking.beginDate() + 2);
+        staking.stake(10 ether);
+        vm.warp(staking.expirationDate() + 1);
+        staking.withdraw();
+        vm.expectRevert("Already withdrawn");
+        staking.withdraw();
+    }
+
+    function testWithdraw_RevertIfNotFinishedYet() public {
+        vm.startPrank(user1);
+        vm.warp(staking.beginDate() + 2);
+        staking.stake(10 ether);
+        vm.expectRevert("Staking not finished yet");
+        staking.withdraw();
+    }
+
+    function testWithdraw_WithdrawForThreeUsers() public {
+        vm.startPrank(user1);
+        vm.warp(staking.beginDate() + 2);
+        staking.stake(1_000 ether);
+        vm.stopPrank();
+
+        vm.startPrank(user2);
+        vm.warp(staking.beginDate() + 2);
+        staking.stake(100_000 ether);
+        vm.stopPrank();
+
+        vm.startPrank(user3);
+        vm.warp(staking.beginDate() + 2);
+        staking.stake(500_000 ether);
+        vm.stopPrank();
+
+        vm.warp(staking.expirationDate() + 1);
+        vm.prank(user1);
+        staking.withdraw();
+        vm.prank(user2);
+        staking.withdraw();
+        vm.prank(user3);
+        staking.withdraw();
+
+        assertEq(cloudCoin.balanceOf(user1), 1663893510815307820299); // 1_000 * 1_000_000 / 601_000
+        assertEq(cloudCoin.balanceOf(user2), 166389351081530782029950); // 100_000 * 1_000_000 / 601_000
+        assertEq(cloudCoin.balanceOf(user3), 831946755407653910149750); // 500_000 * 1_000_000 / 601_000
+    }
 }
