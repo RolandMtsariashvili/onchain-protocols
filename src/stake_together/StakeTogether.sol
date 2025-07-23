@@ -6,10 +6,9 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 contract CloudCoin is ERC20 {
-    constructor(
-        address stakingContract,
-        uint mintAmount
-    ) ERC20("CloudCoin", "CCN") {
+    constructor() ERC20("CloudCoin", "CCN") {}
+
+    function mint(address stakingContract, uint mintAmount) external {
         _mint(stakingContract, mintAmount);
     }
 }
