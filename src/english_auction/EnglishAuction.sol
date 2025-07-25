@@ -6,6 +6,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Receiver} from "@openzeppelin/contracts/token/ERC721/IERC721Receiver.sol";
+import {console} from "forge-std/console.sol";
 
 contract EnglishAuction is ReentrancyGuard, IERC721Receiver {
     function onERC721Received(
@@ -93,9 +94,13 @@ contract EnglishAuction is ReentrancyGuard, IERC721Receiver {
     }
 
     function bid(uint auctionId) public payable nonReentrant {
+        console.log("hereereasad");
         Auction storage auction = auctions[auctionId];
         require(block.timestamp < auction.deadline, "Auction has ended");
-        require(msg.value > auction.highestBid);
+        require(
+            msg.value > auction.highestBid,
+            "You Cant bid lower than highest bid"
+        );
         require(msg.sender != auction.highestBidder, "Already highest bidder");
 
         auction.highestBid = msg.value;
@@ -164,5 +169,9 @@ contract EnglishAuction is ReentrancyGuard, IERC721Receiver {
         );
 
         emit AuctionReclaimed(auctionId, auction.seller);
+    }
+
+    function getAuction(uint auctionId) public view returns (Auction memory) {
+        return auctions[auctionId];
     }
 }
