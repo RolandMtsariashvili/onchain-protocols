@@ -123,8 +123,8 @@ contract Blackjack is ReentrancyGuard {
         emit GameStarted(nextGameId, msg.sender, msg.value);
     }
 
-    function playerHit() external nonReentrant {
-        Game storage game = games[nextGameId];
+    function playerHit(uint gameId) external nonReentrant {
+        Game storage game = games[gameId];
         require(game.status == GameStatus.PlayerTurn, "Not player turn");
         require(!game.playerHand.stood, "Player already stood");
         require(!game.playerHand.busted, "Player already busted");
@@ -145,11 +145,11 @@ contract Blackjack is ReentrancyGuard {
 
         game.lastActionBlock = block.number;
 
-        emit PlayerHit(nextGameId, msg.sender, card);
+        emit PlayerHit(gameId, msg.sender, card);
     }
 
-    function playerStand() external nonReentrant {
-        Game storage game = games[nextGameId];
+    function playerStand(uint gameId) external nonReentrant {
+        Game storage game = games[gameId];
         require(game.status == GameStatus.PlayerTurn, "Not player turn");
         require(!game.playerHand.stood, "Player already stood");
         require(!game.playerHand.busted, "Player already busted");
@@ -162,6 +162,6 @@ contract Blackjack is ReentrancyGuard {
         game.status = GameStatus.DealerTurn;
         game.lastActionBlock = block.number;
 
-        emit PlayerStand(nextGameId, msg.sender);
+        emit PlayerStand(gameId, msg.sender);
     }
 }
