@@ -32,6 +32,7 @@ contract Blackjack is ReentrancyGuard {
 
     event GameStarted(uint gameId, address player, uint betAmount);
     event PlayerHit(uint gameId, address player, uint8 card);
+    event PlayerStand(uint gameId, address player);
 
     // This will use Chainlink VRF ( in separate repo where testnet will be introduced)
     function _dealCard(
@@ -145,5 +146,22 @@ contract Blackjack is ReentrancyGuard {
         game.lastActionBlock = block.number;
 
         emit PlayerHit(nextGameId, msg.sender, card);
+    }
+
+    function playerStand() external nonReentrant {
+        Game storage game = games[nextGameId];
+        require(game.status == GameStatus.PlayerTurn, "Not player turn");
+        require(!game.playerHand.stood, "Player already stood");
+        require(!game.playerHand.busted, "Player already busted");
+        require(
+            game.lastActionBlock + 10 > block.number,
+            "Time limit has passed"
+        );
+
+        game.playerHand.stood = true;
+        game.status = GameStatus.DealerTurn;
+        game.lastActionBlock = block.number;
+
+        emit PlayerStand(nextGameId, msg.sender);
     }
 }
