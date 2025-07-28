@@ -67,6 +67,12 @@ contract Blackjack is ReentrancyGuard {
     }
 
     function startGame() external payable {
+        require(msg.value > 0, "Bet amount must be greater than 0");
+        require(
+            games[nextGameId + 1].player == address(0),
+            "Game already started"
+        );
+
         nextGameId++;
 
         uint8 card1 = _dealCard(msg.sender, 1);
