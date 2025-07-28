@@ -164,4 +164,24 @@ contract Blackjack is ReentrancyGuard {
 
         emit PlayerStand(gameId, msg.sender);
     }
+
+    function dealerNextMove(uint gameId) external nonReentrant {
+        Game storage game = games[gameId];
+        require(game.status == GameStatus.DealerTurn, "Not dealer turn");
+        require(
+            game.lastActionBlock + 10 > block.number,
+            "Time limit has passed"
+        );
+        require(game.player == msg.sender, "Not your game");
+
+        uint8 dealerCard = _dealCard(msg.sender, 5);
+        game.dealerHand.cards.push(dealerCard);
+
+        (uint8 dealerTotal, ) = _getHandTotal(game.dealerHand.cards);
+
+        if (dealerTotal > 21) {
+            game.dealerHand.busted = true;
+            game.status = GameStatus.Finished;
+        }
+    }
 }
