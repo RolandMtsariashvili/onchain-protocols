@@ -31,6 +31,7 @@ contract Blackjack is ReentrancyGuard {
     mapping(uint => Game) public games;
 
     event GameStarted(uint gameId, address player, uint betAmount);
+    event PlayerHit(uint gameId, address player, uint8 card);
 
     // This will use Chainlink VRF ( in separate repo where testnet will be introduced)
     function _dealCard(
@@ -66,7 +67,24 @@ contract Blackjack is ReentrancyGuard {
         return distribution[index];
     }
 
-    function startGame() external payable {
+    function _getHandTotal(
+        uint8[] memory cards
+    ) internal pure returns (uint8 total, bool isSoft) {
+        for (uint i = 0; i < cards.length; i++) {
+            total += cards[i];
+            if (cards[i] == 11) {
+                isSoft = true;
+            }
+        }
+
+        if (isSoft && total > 21) {
+            total -= 10;
+            isSoft = false;
+        }
+        return (total, isSoft);
+    }
+
+    function startGame() external payable nonReentrant {
         require(msg.value > 0, "Bet amount must be greater than 0");
         require(
             games[nextGameId + 1].player == address(0),
@@ -102,5 +120,30 @@ contract Blackjack is ReentrancyGuard {
         games[nextGameId].dealerHand.cards.push(dealerCard);
 
         emit GameStarted(nextGameId, msg.sender, msg.value);
+    }
+
+    function playerHit() external nonReentrant {
+        Game storage game = games[nextGameId];
+        require(game.status == GameStatus.PlayerTurn, "Not player turn");
+        require(!game.playerHand.stood, "Player already stood");
+        require(!game.playerHand.busted, "Player already busted");
+        require(
+            game.lastActionBlock + 10 > block.number,
+            "Time limit has passed"
+        );
+
+        uint8 card = _dealCard(msg.sender, 4);
+        game.playerHand.cards.push(card);
+
+        (uint8 playerTotal, ) = _getHandTotal(game.playerHand.cards);
+
+        if (playerTotal > 21) {
+            game.playerHand.busted = true;
+            game.status = GameStatus.Finished;
+        }
+
+        game.lastActionBlock = block.number;
+
+        emit PlayerHit(nextGameId, msg.sender, card);
     }
 }
