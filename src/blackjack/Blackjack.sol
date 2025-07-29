@@ -34,6 +34,12 @@ contract Blackjack is ReentrancyGuard {
     event PlayerHit(uint gameId, address player, uint8 card);
     event PlayerStand(uint gameId, address player);
     event DealerHit(uint gameId, address player, uint8 card);
+    event GameFinished(
+        uint gameId,
+        address player,
+        uint8 playerTotal,
+        uint8 dealerTotal
+    );
 
     // This will use Chainlink VRF ( in separate repo where testnet will be introduced)
     function _dealCard(
@@ -84,6 +90,29 @@ contract Blackjack is ReentrancyGuard {
             isSoft = false;
         }
         return (total, isSoft);
+    }
+
+    function _resolveWinner(uint gameId) internal {
+        Game storage game = games[gameId];
+        address payable player = payable(game.player);
+
+        uint bet = game.betAmount;
+
+        (uint8 playerTotal, ) = _getHandTotal(game.playerHand.cards);
+        (uint8 dealerTotal, ) = _getHandTotal(game.dealerHand.cards);
+
+        if (game.playerHand.busted) {} else if (
+            game.dealerHand.busted || playerTotal > dealerTotal
+        ) {
+            player.transfer(bet * 2);
+        } else if (playerTotal == dealerTotal) {
+            player.transfer(bet);
+        }
+
+        game.status = GameStatus.Finished;
+        game.betAmount = 0; // Prevent accidental double payout
+
+        emit GameFinished(gameId, game.player, playerTotal, dealerTotal);
     }
 
     function startGame() external payable nonReentrant {
@@ -189,6 +218,8 @@ contract Blackjack is ReentrancyGuard {
 
             (dealerTotal, isSoft) = _getHandTotal(game.dealerHand.cards);
         }
+
+        _resolveWinner(gameId);
 
         game.lastActionBlock = block.number;
     }
