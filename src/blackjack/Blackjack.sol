@@ -33,6 +33,7 @@ contract Blackjack is ReentrancyGuard {
     event GameStarted(uint gameId, address player, uint betAmount);
     event PlayerHit(uint gameId, address player, uint8 card);
     event PlayerStand(uint gameId, address player);
+    event DealerHit(uint gameId, address player, uint8 card);
 
     // This will use Chainlink VRF ( in separate repo where testnet will be introduced)
     function _dealCard(
@@ -174,14 +175,21 @@ contract Blackjack is ReentrancyGuard {
         );
         require(game.player == msg.sender, "Not your game");
 
-        uint8 dealerCard = _dealCard(msg.sender, 5);
-        game.dealerHand.cards.push(dealerCard);
+        uint8 dealerTotal;
+        bool isSoft;
 
-        (uint8 dealerTotal, ) = _getHandTotal(game.dealerHand.cards);
+        while (true) {
+            if (dealerTotal >= 17 && !(dealerTotal == 17 && isSoft)) {
+                break;
+            }
 
-        if (dealerTotal > 21) {
-            game.dealerHand.busted = true;
-            game.status = GameStatus.Finished;
+            uint8 card = _dealCard(msg.sender, game.dealerHand.cards.length);
+            game.dealerHand.cards.push(card);
+            emit DealerHit(gameId, game.player, card);
+
+            (dealerTotal, isSoft) = _getHandTotal(game.dealerHand.cards);
         }
+
+        game.lastActionBlock = block.number;
     }
 }
