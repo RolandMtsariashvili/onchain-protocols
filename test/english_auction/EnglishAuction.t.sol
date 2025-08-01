@@ -47,7 +47,6 @@ contract EnglishAuctionTest is Test {
             block.timestamp + 2 days,
             50_000 gwei
         );
-        console.log("sadasd");
         englishAuction.deposit(nft, block.timestamp + 2 days, 50_000 gwei);
         (address _seller, , , , , , ) = englishAuction.auctions(1);
         assertEq(_seller, seller);

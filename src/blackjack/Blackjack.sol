@@ -223,4 +223,8 @@ contract Blackjack is ReentrancyGuard {
 
         game.lastActionBlock = block.number;
     }
+
+    function getGame(uint gameId) external view returns (Game memory) {
+        return games[gameId];
+    }
 }
