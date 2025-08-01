@@ -30,12 +30,12 @@ contract Blackjack is ReentrancyGuard {
     uint public nextGameId;
     mapping(uint => Game) public games;
 
-    event GameStarted(uint gameId, address player, uint betAmount);
-    event PlayerHit(uint gameId, address player, uint8 card);
-    event PlayerStand(uint gameId, address player);
-    event DealerHit(uint gameId, address player, uint8 card);
+    event GameStarted(uint indexed gameId, address player, uint betAmount);
+    event PlayerHit(uint indexed gameId, address player, uint8 card);
+    event PlayerStand(uint indexed gameId, address player);
+    event DealerHit(uint indexed gameId, address player, uint8 card);
     event GameFinished(
-        uint gameId,
+        uint indexed gameId,
         address player,
         uint8 playerTotal,
         uint8 dealerTotal
