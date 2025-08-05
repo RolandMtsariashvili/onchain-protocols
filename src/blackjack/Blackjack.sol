@@ -162,6 +162,7 @@ contract Blackjack is ReentrancyGuard {
     function playerHit(uint gameId) external nonReentrant {
         Game storage game = games[gameId];
         require(game.status == GameStatus.PlayerTurn, "Not player turn");
+        require(game.player == msg.sender, "Not your game");
         require(!game.playerHand.stood, "Player already stood");
         require(!game.playerHand.busted, "Player already busted");
         require(
@@ -187,6 +188,7 @@ contract Blackjack is ReentrancyGuard {
     function playerStand(uint gameId) external nonReentrant {
         Game storage game = games[gameId];
         require(game.status == GameStatus.PlayerTurn, "Not player turn");
+        require(game.player == msg.sender, "Not your game");
         require(!game.playerHand.stood, "Player already stood");
         require(!game.playerHand.busted, "Player already busted");
         require(
