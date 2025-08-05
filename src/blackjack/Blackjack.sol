@@ -29,6 +29,7 @@ contract Blackjack is ReentrancyGuard {
 
     uint public nextGameId;
     mapping(uint => Game) public games;
+    mapping(address => uint) public activeGames;
 
     address public owner;
 
@@ -123,6 +124,7 @@ contract Blackjack is ReentrancyGuard {
 
     function startGame() external payable nonReentrant {
         require(msg.value > 0, "Bet amount must be greater than 0");
+        require(activeGames[msg.sender] == 0, "Already have active game");
         require(
             games[nextGameId + 1].player == address(0),
             "Game already started"
@@ -155,6 +157,8 @@ contract Blackjack is ReentrancyGuard {
         games[nextGameId].playerHand.cards.push(card1);
         games[nextGameId].playerHand.cards.push(card2);
         games[nextGameId].dealerHand.cards.push(dealerCard);
+
+        activeGames[msg.sender] = nextGameId;
 
         emit GameStarted(nextGameId, msg.sender, msg.value);
     }
@@ -229,6 +233,7 @@ contract Blackjack is ReentrancyGuard {
 
         _resolveWinner(gameId);
 
+        activeGames[msg.sender] = 0;
         game.lastActionBlock = block.number;
     }
 
