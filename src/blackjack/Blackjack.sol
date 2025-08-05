@@ -30,6 +30,8 @@ contract Blackjack is ReentrancyGuard {
     uint public nextGameId;
     mapping(uint => Game) public games;
 
+    address public owner;
+
     event GameStarted(uint indexed gameId, address player, uint betAmount);
     event PlayerHit(uint indexed gameId, address player, uint8 card);
     event PlayerStand(uint indexed gameId, address player);
@@ -90,6 +92,10 @@ contract Blackjack is ReentrancyGuard {
             isSoft = false;
         }
         return (total, isSoft);
+    }
+
+    constructor() {
+        owner = msg.sender;
     }
 
     function _resolveWinner(uint gameId) internal {
@@ -226,5 +232,10 @@ contract Blackjack is ReentrancyGuard {
 
     function getGame(uint gameId) external view returns (Game memory) {
         return games[gameId];
+    }
+
+    function withdraw() external {
+        require(msg.sender == owner, "Not owner");
+        payable(msg.sender).transfer(address(this).balance);
     }
 }
