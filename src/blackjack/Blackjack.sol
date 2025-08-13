@@ -45,10 +45,11 @@ contract Blackjack is ReentrancyGuard {
     );
 
     // This will use Chainlink VRF ( in separate repo where testnet will be introduced)
+    // This is also virtual to allow for testing with deterministic cards
     function _dealCard(
         address player,
         uint salt
-    ) internal view returns (uint8) {
+    ) internal virtual view returns (uint8) {
         uint rand = uint(
             keccak256(
                 abi.encodePacked(

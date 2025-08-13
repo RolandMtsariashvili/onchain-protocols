@@ -7,6 +7,27 @@ import {console} from "forge-std/console.sol";
 
 import {Blackjack} from "../../src/blackjack/Blackjack.sol";
 
+
+contract BlackJackScripted is Blackjack {
+    uint8[] private scripted;
+    uint private nextIdx;
+
+
+    function loadScript(uint8[] memory cards) external {
+        delete scripted;
+        for (uint i = 0; i < cards.length; i++) {
+            scripted.push(cards[i]);
+        }
+        nextIdx = 0;
+    }
+
+    function _dealCard(address, uint) internal view override returns(uint8) {
+        uint idx = nextIdx;
+        require(idx < scripted.length, "No more scripted cards");
+        return scripted[idx];
+    }
+}
+
 contract BlackjackTest is Test {
     Blackjack blackjack;
     address player = address(1);
