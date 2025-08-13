@@ -29,12 +29,12 @@ contract BlackJackScripted is Blackjack {
 }
 
 contract BlackjackTest is Test {
-    Blackjack blackjack;
+    BlackJackScripted blackJackScripted;
     address player = address(1);
     address dealer = address(2);
 
     function setUp() public {
-        blackjack = new Blackjack();
+        blackJackScripted = new BlackJackScripted();
         vm.deal(player, 100 ether);
         vm.deal(dealer, 100 ether);
     }
@@ -43,9 +43,9 @@ contract BlackjackTest is Test {
         vm.startPrank(player);
         vm.expectEmit(true, true, false, true);
         emit Blackjack.GameStarted(1, player, 50 ether);
-        blackjack.startGame{value: 50 ether}();
+        blackJackScripted.startGame{value: 50 ether}();
 
-        Blackjack.Game memory game = blackjack.getGame(1);
+        Blackjack.Game memory game = blackJackScripted.getGame(1);
         assertEq(game.player, player);
         assertEq(game.betAmount, 50 ether);
         assertEq(
@@ -58,19 +58,20 @@ contract BlackjackTest is Test {
     }
 
     function testPlayerHit_playerHit() public {
+        blackJackScripted.loadScript([4, 5]);
         vm.startPrank(player);
-        blackjack.startGame{value: 50 ether}();
+        blackJackScripted.startGame{value: 50 ether}();
 
         vm.expectEmit(true, true, false, false);
         emit Blackjack.PlayerHit(1, player, 4);
-        blackjack.playerHit(1);
+        blackJackScripted.playerHit(1);
 
-        Blackjack.Game memory game = blackjack.getGame(1);
+        Blackjack.Game memory game = blackJackScripted.getGame(1);
         assertEq(game.player, player);
         assertEq(game.betAmount, 50 ether);
         assertEq(
             uint256(game.status),
-            uint256(Blackjack.GameStatus.PlayerTurn)
+            uint256(blackJackScripted.GameStatus.PlayerTurn)
         );
         assertEq(game.lastActionBlock, block.number);
         vm.stopPrank();
