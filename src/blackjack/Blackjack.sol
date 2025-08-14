@@ -3,7 +3,7 @@
 pragma solidity >=0.7.0 <0.9.0;
 
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
+import {console} from "forge-std/console.sol";
 contract Blackjack is ReentrancyGuard {
     enum GameStatus {
         Waiting,
@@ -49,7 +49,7 @@ contract Blackjack is ReentrancyGuard {
     function _dealCard(
         address player,
         uint salt
-    ) internal virtual view returns (uint8) {
+    ) internal virtual returns (uint8) {
         uint rand = uint(
             keccak256(
                 abi.encodePacked(
@@ -176,6 +176,7 @@ contract Blackjack is ReentrancyGuard {
         );
 
         uint8 card = _dealCard(msg.sender, 4);
+        console.log("card", card);
         game.playerHand.cards.push(card);
 
         (uint8 playerTotal, ) = _getHandTotal(game.playerHand.cards);

@@ -21,14 +21,15 @@ contract BlackJackScripted is Blackjack {
         nextIdx = 0;
     }
 
-    function _dealCard(address, uint) internal view override returns(uint8) {
+    function _dealCard(address, uint) internal override returns(uint8) {
         uint idx = nextIdx;
+        console.log("idx", idx);
+        nextIdx++;
         require(idx < scripted.length, "No more scripted cards");
         return scripted[idx];
     }
 
     function getScripted() external view returns(uint8[] memory) {
-        console.log("scripted length", scripted.length);
         return scripted;
     }
 }
@@ -45,9 +46,10 @@ contract BlackjackTest is Test {
     }
 
     function testStartGame_gameSuccessfullyStarted() public {
-        uint8[] memory script = new uint8[](2);
+        uint8[] memory script = new uint8[](3);
         script[0] = 4;
         script[1] = 5;
+        script[2] = 6;
         blackJackScripted.loadScript(script);
 
         vm.startPrank(player);
@@ -69,9 +71,11 @@ contract BlackjackTest is Test {
     }
 
     function testPlayerHit_playerHit() public {
-        uint8[] memory script = new uint8[](2);
-        script[0] = 4;
-        script[1] = 5;
+        uint8[] memory script = new uint8[](4);
+        script[0] = 3;
+        script[1] = 6;
+        script[2] = 4;
+        script[3] = 5;
         blackJackScripted.loadScript(script);
         vm.startPrank(player);
         blackJackScripted.startGame{value: 50 ether}();
@@ -79,6 +83,8 @@ contract BlackjackTest is Test {
         vm.expectEmit(true, true, false, false);
         emit Blackjack.PlayerHit(1, player, 4);
         blackJackScripted.playerHit(1);
+
+        blackJackScripted.getScripted();
 
         Blackjack.Game memory game = blackJackScripted.getGame(1);
         assertEq(game.player, player);
@@ -88,7 +94,33 @@ contract BlackjackTest is Test {
             uint256(Blackjack.GameStatus.PlayerTurn)
         );
         assertEq(game.lastActionBlock, block.number);
-        assertEq(game.playerHand.cards[0], 4);
+
+        assertEq(game.playerHand.cards[0], 3);
+        assertEq(game.playerHand.cards[1], 6);
+        assertEq(game.playerHand.cards[2], 5);
+        
         vm.stopPrank();
+    }
+
+    function testPlayerStand_playerHitBusted() public {
+        uint8[] memory script = new uint8[](4);
+        script[0] = 4;
+        script[1] = 10;
+        script[2] = 10;
+        script[3] = 10;
+        blackJackScripted.loadScript(script);
+        vm.startPrank(player);
+        blackJackScripted.startGame{value: 50 ether}();
+
+        blackJackScripted.playerHit(1);
+
+        Blackjack.Game memory game = blackJackScripted.getGame(1);
+        assertEq(game.player, player);
+        assertEq(game.betAmount, 50 ether);
+        assertEq(
+            uint256(game.status),
+            uint256(Blackjack.GameStatus.Finished)
+        );
+        assertEq(game.lastActionBlock, block.number);
     }
 }
